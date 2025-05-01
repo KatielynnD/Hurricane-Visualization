@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hurricane Visualization</title>
+  <!-- Mapbox GL JS -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+  <!-- Custom CSS -->
+  <link href="finalstyle.css" rel="stylesheet">
+    
+</head>
+<body>
+  <div id="map"></div>
+  <div id="title-box">USA Hurricanes from 2000 to 2010</div>
+  <div id="slider-container">
+    <label for="slider">Filter Hurricanes by Year:</label>
+    <div class="tooltip-wrapper">
+      <div id="slider-tooltip">2000</div>
+      <input id="slider" type="range" min="2000" max="2010" step="1" value="2000">
+    </div>
+      
+      
+  </div>
+  <div id="legend">
+    <div class="legend-item">
+      <div class="legend-color" style="background: #3F5C8B;"></div>
+      Tropical Storms
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: #2493A2;"></div>
+      Category 1 Hurricane
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: #57BDA2;"></div>
+      Category 2 Hurricane
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: #FFD500;"></div>
+      Category 3 Hurricane
+    </div>
+    <div class="legend-item">
+       <div class="legend-color" style="background: #FFBA42;"></div>
+       Category 4 Hurricane
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: #FF9913;"></div>
+      Category 5 Hurricane
+    </div>
+      
+      
+  </div>
+    
+    
+  <script>
+    // Access Token
+    mapboxgl.accessToken = 'pk.eyJ1Ijoia2F0aWVseW5uZDE3IiwiYSI6ImNtN3c3bWRndTAycDkybG9xdHZmbWdzamsifQ.igN-iitJkhAaHdldHcPW5Q';
+
+    // Initialize Map
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/katielynnd17/cm9nmuahk00bg01rmah2y8422', // Your custom style
+      center: [-97, 37], // Centered on the US
+      zoom: 4
+    });
+
+    map.on('load', () => {
+      // Add hurricane point data source
+      map.addSource('hurricanes', {
+        type: 'vector',
+        url: 'mapbox://katielynnd17.2yl763pv'
+      });
+
+      // Add a circle layer for hurricanes
+      map.addLayer({
+        id: 'hurricanes',
+        type: 'circle',
+        source: 'hurricanes',
+        'source-layer': 'Hurricane_data_1-1qlau4',
+        paint: {
+          'circle-radius': [
+            'interpolate',
+            ['linear'],
+            ['get', 'Category'],
+            0, 6,
+            5, 13
+          ],
+          'circle-color': [
+            'interpolate',
+            ['linear'],
+            ['get', 'Category'],
+            0, '#3F5C8B', // Tropical Storms
+            1, '#2493A2', // Category 1 Hurricane
+            2, '#57BDA2', // Category 2 Hurricane
+            3, '#FFD500', // Category 3 Hurricane
+            4, '#FFBA42', // Category 4 Hurricane
+            5, '#FF9913'  // Category 5 Hurricane
+          ],
+          'circle-opacity': 0.8
+        }
+      });
+
+         // Add hurricane tracks (from tileset)
+    map.addSource('hurricane-tracks', {
+      type: 'vector',
+      url: 'mapbox://katielynnd17.8jvqvky5' // Replace with your hurricane tracks tileset ID
+    });
+
+
+  // Add a line layer for hurricane tracks
+map.addLayer({
+  id: 'hurricane-tracks',
+  type: 'line',
+  source: 'hurricane-tracks',
+  'source-layer': 'hurricane_tracks_6-buv0ky', // Replace with the source layer name of your tracks
+  layout: {
+    'line-join': 'round',
+    'line-cap': 'round'
+  },
+  paint: {
+    'line-color': [
+      'match',
+      ['get', 'Category'],
+      '0', '#3F5C8B', // Tropical Storms
+      '1', '#2493A2', // Category 1 Hurricane
+      '2', '#57BDA2', // Category 2 Hurricane
+      '3', '#FFD500', // Category 3 Hurricane
+      '4', '#FFBA42', // Category 4 Hurricane
+      '5', '#FF9913', // Category 5 Hurricane
+      '#FF0000' // Fallback color for invalid/missing categories
+    ],
+    'line-width': [
+  'interpolate',
+  ['linear'],
+  ['to-number', ['get', 'Category']], // Convert "Category" to a number
+  0, 4, // Category 0 (Tropical Storm): line thickness = 4
+  5, 8  // Category 5: line thickness = 8
+],
+'line-opacity': 0.6 // Adjust the opacity of the lines (0 is fully transparent, 1 is fully opaque)
+  }
+});
+
+        
+        map.on('click', 'hurricane-tracks', (e) => {
+  console.log(e.features[0].properties);
+});
+        
+       console.log('Hurricane tracks layer added successfully.');
+
+
+      // Add popups
+      map.on('click', 'hurricanes', (e) => {
+        if (e.features && e.features.length) {
+          const properties = e.features[0].properties;
+          const date = `${String(properties.Month).padStart(2, '0')}/${String(properties.Day).padStart(2, '0')}/${properties.Year}`;
+          const popupContent = `
+            <div style="font-size: 14px; line-height: 1.5;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr><td><strong>Name:</strong></td><td>${properties.Name || 'N/A'}</td></tr>
+                <tr><td><strong>Date:</strong></td><td>${date || 'N/A'}</td></tr>
+                <tr><td><strong>Category:</strong></td><td>${properties.Category || 'N/A'}</td></tr>
+                <tr><td><strong>Status:</strong></td><td>${properties.Status || 'N/A'}</td></tr>
+                <tr><td><strong>Maximum Wind (kt):</strong></td><td>${properties['Maximum Wind (kt)'] || 'N/A'}</td></tr>
+              </table>
+            </div>
+          `;
+          new mapboxgl.Popup()
+            .setLngLat(e.lngLat)
+            .setHTML(popupContent)
+            .addTo(map);
+        } else {
+          console.log('No features found at clicked location.');
+        }
+      });
+
+      // Change cursor to pointer on hover
+      map.on('mouseenter', 'hurricanes', () => {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+      map.on('mouseleave', 'hurricanes', () => {
+        map.getCanvas().style.cursor = '';
+      });
+
+      // Add slider functionality
+      const slider = document.getElementById('slider');
+      const sliderTooltip = document.getElementById('slider-tooltip');
+      slider.addEventListener('input', (event) => {
+        const year = parseInt(event.target.value);
+        sliderTooltip.textContent = year;
+        map.setFilter('hurricanes', ['==', ['get', 'Year'], year]);
+          map.setFilter('hurricane-tracks', ['==', ['get', 'Year'], year]);
+      });
+    });
+  </script>
+</body>
+</html>
